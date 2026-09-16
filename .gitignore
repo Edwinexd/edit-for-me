@@ -1,6 +1,5 @@
 venv/
-work/
-review/
 __pycache__/
+.project
 .DS_Store
 *.mp4

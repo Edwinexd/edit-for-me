@@ -1,18 +1,20 @@
 """Transcribe a video/audio file with word-level timestamps.
 
-Usage: venv/bin/python transcribe.py INPUT [INPUT ...] [--lang LANG]
+Usage: venv/bin/python transcribe.py [INPUT ...] [--lang LANG]
+
+Without inputs, transcribes every clip in the project. Relative inputs are in the
+project folder (e.g. work/preview.mp4).
 
 Already-transcribed inputs are skipped. Writes work/<stem>.json (full whisper output), work/<stem>.txt
 (readable, one segment per line with [start-end] and segment id) and work/<stem>.wav (16 kHz mono).
-The backend and model are set by ASR/MODELS in common.py.
+The backend is the project's asr setting (project.py --asr); models are in MODELS in common.py.
 """
 import argparse
 import json
 import subprocess
-from pathlib import Path
 
 import asr
-from common import LANG, WORK, fmt
+from common import LANG, WORK, clips, fmt, in_data
 
 
 def extract_audio(src, dst):
@@ -25,11 +27,11 @@ def extract_audio(src, dst):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("inputs", nargs="+")
-    ap.add_argument("--lang", default=LANG, help="e.g. en, sv; defaults to LANG in common.py")
+    ap.add_argument("inputs", nargs="*", type=in_data)
+    ap.add_argument("--lang", default=LANG, help="e.g. en, sv; defaults to the project's lang")
     args = ap.parse_args()
 
-    for src in map(Path, args.inputs):
+    for src in args.inputs or clips():
         if (WORK / f"{src.stem}.json").exists():
             print(f"skip {src.name} (already transcribed)")
             continue
@@ -37,7 +39,7 @@ def main():
 
 
 def transcribe(src, lang):
-    WORK.mkdir(exist_ok=True)
+    WORK.mkdir(parents=True, exist_ok=True)
     wav = WORK / f"{src.stem}.wav"
     if not wav.exists():
         extract_audio(src, wav)

@@ -2,37 +2,44 @@
 
 Turn raw recording clips of a talk or lecture (retakes, false starts, pauses and all) into one clean video with a coding agent. The agent transcribes the clips with Whisper, makes the editorial cut by hand in an edit decision list (EDL), renders it with ffmpeg, and asks you to check it in a small local review page. There you click an item to play exactly that spot, answer it, and send your answers back.
 
-## Requirements
-- Python 3.12, and `ffmpeg`/`ffprobe` on PATH
-- Transcription uses Whisper: mlx-whisper on Apple Silicon, faster-whisper (CPU, or CUDA if present) everywhere else. `requirements.txt` installs the right one. Set `ASR` in `common.py` to force one.
-- Rendering uses `h264_videotoolbox` on macOS and `libx264` elsewhere.
+Clone it once and point it at as many recordings as you like. Nothing project-specific goes in the clone: settings, transcripts, renders, review rounds and the agent's notes are stored next to the recordings.
+
+## Setup
+Needs Python 3.12 and `ffmpeg`/`ffprobe` on PATH.
 
 ```sh
+git clone https://github.com/Edwinexd/edit-for-me.git
+cd edit-for-me
 python3.12 -m venv venv && venv/bin/pip install -r requirements.txt
 ```
 
-## Start a project
-1. Copy this repo, e.g. `cp -R edit-for-me-template my-lecture` (or use it as a GitHub template).
-2. Put the clips in one folder (mp4/mov/mkv/…). Timestamp filenames sort into recording order.
-3. Start an agent (Claude Code, Codex, …) in the copy and give it the prompt below, filled in.
+- Transcription uses Whisper: mlx-whisper on Apple Silicon, faster-whisper (CPU, or CUDA if present) everywhere else. `requirements.txt` installs the right one.
+- Rendering uses `h264_videotoolbox` on macOS and `libx264` elsewhere.
+
+## Edit a recording
+1. Put the clips for one recording in a folder (mp4/mov/mkv/…). Timestamp filenames sort into recording order.
+2. Start an agent (Claude Code, Codex, …) in the clone and give it the prompt below, filled in.
+
+The agent runs `project.py` on the folder, which creates `FOLDER/edit-for-me/` for everything it produces. The final video ends up in `FOLDER/edit-for-me/work/final.mp4`.
 
 ## The prompt
 
 ```text
-You are editing a recorded talk into a finished video, working in this repo.
-Read AGENTS.md first and follow it exactly. STATUS.md holds the project state:
-read it now and keep it up to date after every step. AGENTS.md is instructions
-only, so never write state there.
+Edit a recorded talk into a finished video with this tool. Read AGENTS.md
+first and follow it exactly. Don't change anything in this repo for this
+recording: all output and state belong in the project's data folder.
 
-The project:
-- Recording: <what it is, e.g. "a 35-minute lecture on generative AI for course X">
+The recording:
+- What it is: <e.g. "a 35-minute lecture on generative AI for course X">
 - Clips: <folder, e.g. ~/Downloads/genai> (<all downloaded | still downloading>)
 - Language: <e.g. Swedish>
 - Special requests: <e.g. "use the outro from clip 14-32-21", "cut the Q&A", or "none">
 
 Work like this:
-1. Set SRC_DIR and LANG in common.py, fill in STATUS.md, and check that venv/
-   works (see Setup in AGENTS.md).
+1. Run project.py on the clips folder with the language. Read the project's
+   STATUS.md (if it already has content, continue from there instead of
+   starting over), fill in what you know, and keep it up to date after every
+   step.
 2. Transcribe every clip. If clips are still downloading, run watch.py in the
    background and watch its output.
 3. Read every transcript in full and build work/edl.json by hand, following
@@ -54,13 +61,11 @@ Work like this:
    handled item a reply and mark it resolved, record my decisions in
    STATUS.md, and publish the next round. Repeat until I sign off.
 7. After I sign off, render work/final.mp4 at full quality and tell me its
-   path and length.
-
-Don't commit anything unless I ask.
+   full path and length.
 ```
 
 ## The review page
-`venv/bin/python review.py serve` opens on http://localhost:8765/. It shows the latest round (older rounds are in the dropdown):
+`venv/bin/python review.py serve` opens on http://localhost:8765/. It shows the current project's latest round (older rounds are in the dropdown):
 - **To check**: the agent's items. **▶ time** plays from a few seconds before the spot and stops at the item's end, so you never have to scrub. Take comparisons play the source clips. Answer with the choice buttons and/or a comment.
 - **Comments at a time**: press `c` (or click the comment box) anywhere in the video to pause and leave a note at that moment. The agent gets the time, the EDL piece and the source-clip time.
 - **Send to agent**: answers autosave to `review/responses/review-N.json` as you go. Sending tells the agent (`review.py wait`) that they're ready. You can send more than once.
@@ -68,13 +73,18 @@ Don't commit anything unless I ask.
 - When the agent replies to or resolves items, or publishes a new round, the page updates on its own.
 
 ## Layout
-| Path | What |
+| In the clone | What |
 | --- | --- |
 | `AGENTS.md` (`CLAUDE.md` links to it) | Instructions for the agent: tools, editing rules, the review loop |
-| `STATUS.md` | Project state, kept up to date by the agent |
-| `common.py` | Paths and settings: `SRC_DIR`, `LANG`, `ASR` |
+| `project.py` | Selects the current project (stored in the gitignored `.project`) |
+| `common.py` | Project paths and settings, shared helpers |
 | `asr.py`, `transcribe.py`, `watch.py`, `words.py`, `snippet.py`, `rms.py` | Transcription and inspection |
 | `snap.py`, `render.py`, `times.py` | EDL → video |
 | `review.py`, `ui/index.html` | Review rounds: publish, serve, wait, show |
-| `work/` | Transcripts, audio, EDL, piece cache, renders (ignored by git) |
-| `review/` | Frozen review renders, rounds and your responses (ignored by git) |
+
+| In `CLIPS/edit-for-me/` | What |
+| --- | --- |
+| `project.json` | Clip folder, language, ASR backend |
+| `STATUS.md` | The agent's notes: decisions, clip quirks, current round |
+| `work/` | Transcripts, audio, EDL, piece cache, renders |
+| `review/` | Frozen review renders, rounds and your responses |

@@ -2,6 +2,8 @@
 
 Usage: venv/bin/python render.py EDL.json OUTPUT [--fade 0.03] [--preview] [--jobs 4]
 
+Relative paths are in the project folder, e.g. render.py work/edl.json work/preview.mp4 --preview
+
 EDL.json is a list played in the given order, no sorting:
   [{"src": "11-42-47", "in": 1.68, "out": 14.29, "text": "..."}, ...]
 src is a clip stem or unique suffix (its video is looked up in SRC_DIR); "text" and "lock"
@@ -26,7 +28,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from common import WORK, clip_path, resolve_stem
+from common import WORK, clip_path, in_data, resolve_stem
 
 PIECES = WORK / "pieces"
 
@@ -75,8 +77,8 @@ def cut_piece(p, fade, preview):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("edl")
-    ap.add_argument("output")
+    ap.add_argument("edl", type=in_data)
+    ap.add_argument("output", type=in_data)
     ap.add_argument("--fade", type=float, default=0.03)
     ap.add_argument("--preview", action="store_true")
     ap.add_argument("--jobs", type=int, default=4)
@@ -104,7 +106,7 @@ def main():
     subprocess.run(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
          "-i", str(listing), "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-         "-movflags", "+faststart", args.output],
+         "-movflags", "+faststart", str(args.output)],
         check=True,
     )
     total = sum(p["out"] - p["in"] for p in pieces)

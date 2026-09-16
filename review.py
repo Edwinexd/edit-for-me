@@ -1,10 +1,12 @@
 """Review rounds: publish a render for the user, serve the review web UI, read the answers.
 
 Usage:
-  venv/bin/python review.py publish RENDER.mp4 [--edl work/edl.json]
+  venv/bin/python review.py publish [RENDER.mp4] [--edl EDL]   (default work/preview.mp4, work/edl.json)
   venv/bin/python review.py serve [--port 8765]
   venv/bin/python review.py wait [ROUND]      (keeps running; prints a line per send)
   venv/bin/python review.py show [ROUND]      (default: the latest round)
+
+Paths are in the project folder (see project.py).
 
 `publish` copies the render, its timeline and the EDL to review/review-N.*
 (so their times stay fixed while editing continues) and writes a skeleton
@@ -44,10 +46,9 @@ import time
 from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from common import REVIEW, ROOT, WORK, clip_path, fmt, resolve_stem
+from common import REVIEW, ROOT, clip_path, fmt, in_data, resolve_stem
 from times import resolve
 
 RESPONSES = REVIEW / "responses"
@@ -101,7 +102,7 @@ def piece_text(timeline, n):
 # ---- CLI --------------------------------------------------------------------
 
 def cmd_publish(args):
-    render = Path(args.render)
+    render = args.render
     names = round_names() + [p.stem for p in REVIEW.glob("review-*.mp4")]
     n = max((int(ROUND_RE.fullmatch(s).group(1)) for s in names if ROUND_RE.fullmatch(s)), default=0) + 1
     name = f"review-{n}"
@@ -276,8 +277,8 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("publish")
-    p.add_argument("render")
-    p.add_argument("--edl", default=str(WORK / "edl.json"))
+    p.add_argument("render", nargs="?", type=in_data, default="work/preview.mp4")
+    p.add_argument("--edl", type=in_data, default="work/edl.json")
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8765)
     for cmd in ("show", "wait"):

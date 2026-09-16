@@ -4,7 +4,7 @@ transcribe(audio, lang) takes a 16 kHz mono file path or float32 numpy array
 and returns {"text", "language", "segments": [{"start", "end", "text",
 "words": [{"start", "end", "word", "probability"}]}]}.
 
-ASR in common.py picks the backend:
+The project's asr setting (project.py --asr) picks the backend:
   "mlx"             mlx-whisper (Apple Silicon)
   "faster-whisper"  faster-whisper (CPU or CUDA, any platform)
   "auto"            mlx on Apple Silicon, faster-whisper elsewhere

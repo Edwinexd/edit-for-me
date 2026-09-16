@@ -1,6 +1,6 @@
 """Snap EDL cut points into real silences (in place), and report the moves.
 
-Usage: venv/bin/python snap.py EDL.json [--db -38] [--maxmove 0.6]
+Usage: venv/bin/python snap.py [EDL.json] [--db -38] [--maxmove 0.6]   (default work/edl.json)
 
 For each piece, "in" moves to just before speech resumes (end of the
 nearest silence, minus --lead) and "out" to just after speech stops (start
@@ -14,7 +14,7 @@ import json
 import re
 import subprocess
 
-from common import WORK, resolve_stem
+from common import WORK, in_data, resolve_stem
 
 _cache = {}
 
@@ -34,7 +34,7 @@ def silences(stem, db):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("edl")
+    ap.add_argument("edl", nargs="?", type=in_data, default="work/edl.json")
     ap.add_argument("--db", type=float, default=-38)
     ap.add_argument("--maxmove", type=float, default=0.6)
     ap.add_argument("--lead", type=float, default=0.12)

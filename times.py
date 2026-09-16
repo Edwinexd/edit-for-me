@@ -10,7 +10,7 @@ of that moment is printed instead of the piece start, e.g.
 import argparse
 import json
 
-from common import WORK, fmt
+from common import WORK, fmt, in_data
 
 
 def resolve(timeline, mark):
@@ -24,7 +24,7 @@ def resolve(timeline, mark):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--timeline", default=str(WORK / "preview.timeline.json"))
+    ap.add_argument("--timeline", type=in_data, default=str(WORK / "preview.timeline.json"))
     ap.add_argument("marks", nargs="+")
     args = ap.parse_args()
 

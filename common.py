@@ -1,21 +1,30 @@
-"""Shared paths, settings and transcript helpers."""
+"""Shared paths, settings and transcript helpers for the current project (see project.py)."""
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-WORK = ROOT / "work"
-REVIEW = ROOT / "review"
+_current = ROOT / ".project"
+if not _current.exists():
+    raise SystemExit("No project selected. Run: venv/bin/python project.py MATERIALS_DIR [--lang LANG]")
 
-# Set per project: where the raw clips are, and the spoken language
-# (a Whisper code such as "sv" or "en"; None autodetects per clip).
-SRC_DIR = Path.home() / "Downloads" / "CHANGE-ME"
-LANG = None
+DATA = Path(_current.read_text().strip())
+_settings = json.loads((DATA / "project.json").read_text())
+SRC_DIR = Path(_settings["src"])
+LANG = _settings.get("lang")
+ASR = _settings.get("asr", "auto")
+WORK = DATA / "work"
+REVIEW = DATA / "review"
 
-# Speech recognition backend (see asr.py) and the Whisper model each one uses.
-ASR = "auto"
+# the Whisper model each speech recognition backend uses (see asr.py)
 MODELS = {"mlx": "mlx-community/whisper-large-v3-turbo", "faster-whisper": "large-v3-turbo"}
 
 VIDEO_EXTS = (".mp4", ".mov", ".m4v", ".mkv", ".webm", ".avi")
+
+
+def in_data(path):
+    """File arguments: relative paths (e.g. work/edl.json) are relative to the project's DATA folder."""
+    path = Path(path).expanduser()
+    return path if path.is_absolute() else DATA / path
 
 
 def fmt(t):
