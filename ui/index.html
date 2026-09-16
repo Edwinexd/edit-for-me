@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit Review</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --line: #e3e0d9; --text: #1f1e1c; --muted: #6f6b63;
+  --accent: #2f6fdb; --accent-soft: #e4edfc; --ok: #2e8a57; --ok-soft: #e0f2e8;
+  --warn: #b7791f; --warn-soft: #fbf0dc; --bad: #c2413a; --track: #e9e6df; --piece: #cfcac0;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --panel: #1f1f1d; --line: #33322f; --text: #ecebe7; --muted: #9b978f;
+    --accent: #6d9cf0; --accent-soft: #1f2b40; --ok: #5cbf86; --ok-soft: #1c3226;
+    --warn: #e0a84a; --warn-soft: #3a2f1b; --bad: #e57368; --track: #2b2a27; --piece: #4a4843;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --panel: #1f1f1d; --line: #33322f; --text: #ecebe7; --muted: #9b978f;
+  --accent: #6d9cf0; --accent-soft: #1f2b40; --ok: #5cbf86; --ok-soft: #1c3226;
+  --warn: #e0a84a; --warn-soft: #3a2f1b; --bad: #e57368; --track: #2b2a27; --piece: #4a4843;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+header { position: sticky; top: 0; z-index: 5; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 15px; margin: 0; font-weight: 600; white-space: nowrap; }
+header select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); max-width: 40vw; }
+.spacer { flex: 1; }
+#status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.primary { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 7px 14px; font-weight: 600; white-space: nowrap; }
+.primary:disabled { opacity: .5; cursor: default; }
+main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 16px; padding: 16px; max-width: 1600px; margin: 0 auto; }
+.player { position: sticky; top: 70px; align-self: start; display: flex; flex-direction: column; gap: 10px; }
+video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; display: block; }
+.bar { position: relative; height: 26px; background: var(--track); border-radius: 5px; cursor: pointer; overflow: hidden; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent-soft); pointer-events: none; }
+.bar .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--piece); pointer-events: none; }
+.bar .mark { position: absolute; top: 4px; width: 8px; height: 18px; margin-left: -4px; border-radius: 3px; background: var(--warn); pointer-events: none; }
+.bar .mark.done { background: var(--ok); }
+.bar .mark.comment { top: 8px; height: 10px; width: 6px; margin-left: -3px; background: var(--accent); }
+.bar .head { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text); pointer-events: none; }
+.now { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.now .meta { color: var(--muted); font-size: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.now .text { margin-top: 2px; min-height: 1.45em; }
+.linkbtn { background: none; border: 0; color: var(--accent); padding: 0; }
+.addc { display: flex; gap: 8px; }
+.addc input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.keys { color: var(--muted); font-size: 12px; }
+kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel); }
+.side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.side h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0 0; font-weight: 600; }
+.notes { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; }
+.item { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.item.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.item.resolved { opacity: .6; }
+.item .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.item .title { font-weight: 600; }
+.chip { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--track); color: var(--muted); }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.time { font: 12px ui-monospace, monospace; background: var(--accent-soft); color: var(--accent); border: 0; border-radius: 5px; padding: 2px 7px; }
+.q { white-space: pre-wrap; }
+.err { color: var(--bad); font-size: 12px; }
+.choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.choices button { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 10px; }
+.choices button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+textarea { width: 100%; resize: vertical; min-height: 34px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.reply { border-left: 3px solid var(--ok); padding: 2px 0 2px 8px; color: var(--muted); white-space: pre-wrap; }
+.clist .c { display: flex; gap: 8px; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+.clist .c .body { flex: 1; min-width: 0; }
+.clist .c .ctx { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clist .del { background: none; border: 0; color: var(--muted); font-size: 16px; line-height: 1; }
+.empty { color: var(--muted); padding: 40px 16px; text-align: center; }
+.banner { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; }
+.banner button { color: inherit; text-decoration: underline; }
+@media (max-width: 900px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .player { position: static; }
+  header { flex-wrap: wrap; }
+  .keys { display: none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Edit review</h1>
+  <select id="round" aria-label="Review round"></select>
+  <span class="spacer"></span>
+  <span id="status"></span>
+  <button id="send" class="primary" disabled>Send to agent</button>
+</header>
+<div id="app"></div>
+
+<script>
+const $ = (sel, el = document) => el.querySelector(sel);
+const nodes = kids => kids.flat(Infinity).filter(k => k != null && k !== false);
+const h = (tag, props = {}, ...kids) => {
+  const el = Object.assign(document.createElement(tag), props);
+  el.append(...nodes(kids));
+  return el;
+};
+const clock = t => {
+  if (t == null || isNaN(t)) return "–";
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return `${m}:${s.toFixed(1).padStart(4, "0")}`;
+};
+const answered = a => !!(a && (a.choice || (a.comment || "").trim()));
+
+const state = {
+  rounds: [], name: null, data: null,
+  resp: { answers: {}, comments: [], general: "" },
+  mode: "review",          // "review" (the round's video) or "clip" (a source clip)
+  resumeAt: 0, stopAt: null, dirty: false, unsent: false, sent: 0,
+};
+let video, saveTimer, commentAt = null;
+
+async function api(path, opts) {
+  const r = await fetch(path, { keepalive: true, ...opts });
+  if (!r.ok) throw new Error(`${r.status} ${path}`);
+  return r.json();
+}
+
+function setStatus(text) { $("#status").textContent = text; }
+
+function refreshSend() {
+  const btn = $("#send");
+  btn.disabled = !state.data;
+  btn.textContent = state.sent && !state.unsent ? `Sent ✓ (${state.sent}×)` : "Send to agent";
+}
+
+// ---- rounds ------------------------------------------------------------------
+
+async function loadRounds() {
+  state.rounds = await api("/api/rounds");
+  const sel = $("#round");
+  sel.replaceChildren(...state.rounds.map(r =>
+    h("option", { value: r.name, textContent: `${r.title}${r.open ? ` · ${r.open} open` : ""}` })));
+  if (state.name) sel.value = state.name;
+}
+
+async function openRound(name) {
+  if (state.dirty) await save();
+  state.name = name;
+  history.replaceState(null, "", `#${name}`);
+  $("#round").value = name;
+  state.data = await api(`/api/rounds/${name}`);
+  const r = state.data.response || {};
+  state.resp = { answers: r.answers || {}, comments: r.comments || [], general: r.general || "" };
+  state.sent = r.sent || 0;
+  state.unsent = !!(r.updated && r.updated !== r.sent_at);
+  state.mtime = (state.rounds.find(x => x.name === name) || {}).mtime;
+  state.mode = "review";
+  render();
+  refreshSend();
+  setStatus(r.updated ? `saved ${r.updated.slice(11, 16)}` : "");
+}
+
+async function poll() {
+  try {
+    const before = new Set(state.rounds.map(r => r.name));
+    await loadRounds();
+    const cur = state.rounds.find(r => r.name === state.name);
+    const typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+    if (cur && cur.mtime !== state.mtime && !typing) {
+      // the agent edited the round (replies, new items): refresh without losing answers
+      state.mtime = cur.mtime;
+      const fresh = await api(`/api/rounds/${state.name}`);
+      state.data.round = fresh.round;
+      state.data.timeline = fresh.timeline;
+      renderSide();
+      renderBar();
+    }
+    const added = state.rounds.filter(r => !before.has(r.name) && r.name !== state.name);
+    if (before.size && added.length) showBanner(added[added.length - 1]);
+  } catch (e) { setStatus("server offline"); }
+}
+
+function showBanner(r) {
+  const b = $("#banner");
+  if (!b) return;
+  b.replaceChildren(`New round ready: ${r.title}. `,
+    h("button", { className: "linkbtn", textContent: "Open it", onclick: () => openRound(r.name) }));
+  b.hidden = false;
+}
+
+// ---- saving ------------------------------------------------------------------
+
+function changed() {
+  state.dirty = true;
+  state.unsent = true;
+  refreshSend();
+  setStatus("editing…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 700);
+  renderBar();
+}
+
+async function save(send = false) {
+  clearTimeout(saveTimer);
+  if (!state.name) return;
+  const name = state.name;
+  setStatus(send ? "sending…" : "saving…");
+  try {
+    const r = await api(`/api/responses/${name}${send ? "?send=1" : ""}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state.resp),
+    });
+    if (name !== state.name) return;
+    state.dirty = false;
+    state.sent = r.sent;
+    if (send) state.unsent = false;
+    setStatus(send ? `sent ${r.sent_at.slice(11, 16)}` : `saved ${r.updated.slice(11, 16)}`);
+    refreshSend();
+  } catch (e) {
+    setStatus("NOT saved (server offline?)");
+  }
+}
+
+// ---- player ------------------------------------------------------------------
+
+const timeline = () => (state.data && state.data.timeline) || [];
+
+function pieceAt(t) {
+  const tl = timeline();
+  let i = -1;
+  for (let n = 0; n < tl.length && tl[n].start <= t + 1e-3; n++) i = n;
+  return i;
+}
+
+function useReview(t) {
+  if (state.mode !== "review") {
+    state.mode = "review";
+    video.src = `/media/${state.data.round.video}`;
+  }
+  seek(t);
+}
+
+function seek(t, stopAt = null) {
+  state.stopAt = stopAt;
+  const go = () => { video.currentTime = Math.max(0, t); video.play().catch(() => {}); };
+  if (video.readyState >= 1) go(); else video.addEventListener("loadedmetadata", go, { once: true });
+}
+
+function playItem(item) {
+  useReview(item.at - (item.pre ?? 3));
+  state.stopAt = item.to ?? null;
+}
+
+function playClip(clip) {
+  if (state.mode === "review") state.resumeAt = video.currentTime;
+  state.mode = "clip";
+  state.clip = clip;
+  video.src = `/src/${encodeURIComponent(clip.src)}`;
+  seek(clip.in, clip.out);
+  renderNow();
+}
+
+function onTime() {
+  const t = video.currentTime;
+  if (state.stopAt != null && t >= state.stopAt) { video.pause(); state.stopAt = null; }
+  renderNow();
+  const d = video.duration || 0;
+  if (state.mode === "review" && d) {
+    $(".bar .fill").style.width = `${(t / d) * 100}%`;
+    $(".bar .head").style.left = `${(t / d) * 100}%`;
+  }
+  for (const card of document.querySelectorAll(".item[data-at]")) {
+    const at = +card.dataset.at, to = card.dataset.to ? +card.dataset.to : at + 4;
+    card.classList.toggle("active", state.mode === "review" && t >= at - 3 && t <= to);
+  }
+}
+
+// where a comment made right now points to, in the render and in the source clip
+function here() {
+  const t = video.currentTime;
+  if (state.mode === "clip") return { at: null, piece: null, src: state.clip.src, src_at: +t.toFixed(2) };
+  const i = pieceAt(t), p = timeline()[i];
+  return { at: +t.toFixed(2), piece: i < 0 ? null : i, src: p ? p.src : null, src_at: p ? +(p.in + t - p.start).toFixed(2) : null };
+}
+
+// ---- rendering ---------------------------------------------------------------
+
+function render() {
+  const app = $("#app");
+  if (!state.data) {
+    app.replaceChildren(h("div", { className: "empty" },
+      "Nothing to review yet. When the agent publishes a round (review.py publish), it shows up here."));
+    return;
+  }
+  video = h("video", { controls: true, preload: "metadata", playsInline: true, src: `/media/${state.data.round.video}` });
+  video.addEventListener("timeupdate", onTime);
+  video.addEventListener("seeked", onTime);
+  video.addEventListener("loadedmetadata", renderBar);
+  const input = h("input", { placeholder: "Comment at the current time… (c)", id: "cinput" });
+  input.addEventListener("focus", () => { commentAt = here(); video.pause(); input.placeholder = `Comment at ${clock(commentAt.at ?? commentAt.src_at)}…`; });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter" && input.value.trim()) {
+      state.resp.comments.push({ ...(commentAt || here()), text: input.value.trim() });
+      input.value = "";
+      input.blur();
+      changed();
+      renderComments();
+    } else if (e.key === "Escape") {
+      input.value = "";
+      input.blur();
+      video.play().catch(() => {});
+    }
+  });
+  input.addEventListener("blur", () => { input.placeholder = "Comment at the current time… (c)"; });
+  const bar = h("div", { className: "bar", title: "" });
+  bar.addEventListener("click", e => {
+    const f = (e.clientX - bar.getBoundingClientRect().left) / bar.clientWidth;
+    useReview(f * (video.duration || 0));
+  });
+  bar.addEventListener("mousemove", e => {
+    const f = (e.clientX - bar.getBoundingClientRect().left) / bar.clientWidth, t = f * (video.duration || 0);
+    const p = timeline()[pieceAt(t)];
+    bar.title = `${clock(t)}${p ? `  ${p.text}` : ""}`;
+  });
+
+  app.replaceChildren(h("main", {},
+    h("section", { className: "player" },
+      video, bar,
+      h("div", { className: "now", id: "now" }),
+      h("div", { className: "addc" }, input),
+      h("div", { className: "keys" },
+        h("kbd", { textContent: "space" }), " play/pause  ", h("kbd", { textContent: "←" }), h("kbd", { textContent: "→" }),
+        " ±2 s  ", h("kbd", { textContent: "c" }), " comment  ", h("kbd", { textContent: "n" }), h("kbd", { textContent: "p" }),
+        " next/prev item")),
+    h("section", { className: "side", id: "side" })));
+  renderSide();
+  renderBar();
+  renderNow();
+}
+
+function renderBar() {
+  const bar = $(".bar");
+  if (!bar || state.mode !== "review") return;
+  const d = video.duration || 0;
+  const pct = t => `${(t / d) * 100}%`;
+  const kids = [h("div", { className: "fill" })];
+  if (d) {
+    timeline().slice(1).forEach(p => kids.push(h("div", { className: "tick", style: `left:${pct(p.start)}` })));
+    (state.data.round.items || []).filter(i => i.at != null && !i.resolved).forEach(i =>
+      kids.push(h("div", { className: `mark${answered(state.resp.answers[i.id]) ? " done" : ""}`, style: `left:${pct(i.at)}` })));
+    state.resp.comments.filter(c => c.at != null).forEach(c =>
+      kids.push(h("div", { className: "mark comment", style: `left:${pct(c.at)}` })));
+  }
+  kids.push(h("div", { className: "head", style: `left:${d ? pct(video.currentTime) : 0}` }));
+  bar.replaceChildren(...kids);
+}
+
+function renderNow() {
+  const el = $("#now");
+  if (!el) return;
+  const t = video.currentTime;
+  if (state.mode === "clip") {
+    const c = state.clip;
+    el.replaceChildren(
+      h("div", { className: "meta" }, `Source clip ${c.src} · ${t.toFixed(1)} s (${c.in}–${c.out}) · `,
+        h("button", { className: "linkbtn", textContent: "← back to the review video", onclick: () => useReview(state.resumeAt) })),
+      h("div", { className: "text", textContent: c.label || "" }));
+    return;
+  }
+  const tl = timeline(), i = pieceAt(t), p = tl[i];
+  el.replaceChildren(
+    h("div", { className: "meta", textContent: `${clock(t)} / ${clock(video.duration)}`
+      + (p ? ` · piece ${i + 1}/${tl.length} · ${p.src} @ ${(p.in + t - p.start).toFixed(1)} s` : "") }),
+    h("div", { className: "text", textContent: p ? p.text : "" }));
+}
+
+function renderSide() {
+  const side = $("#side");
+  const rnd = state.data.round;
+  const items = rnd.items || [];
+  const open = items.filter(i => !i.resolved), done = items.filter(i => i.resolved);
+  side.replaceChildren(...nodes([
+    h("div", { className: "banner", id: "banner", hidden: true }),
+    rnd.notes ? h("div", { className: "notes", textContent: rnd.notes }) : null,
+    h("h2", { id: "checkcount" }),
+    open.length ? open.map(itemCard) : h("div", { className: "notes", textContent: "Nothing specific to check. Watch it through and comment on anything." }),
+    done.length ? [h("h2", { textContent: `Resolved (${done.length})` }), done.map(itemCard)] : null,
+    h("h2", { textContent: "Comments at a time" }),
+    h("div", { className: "clist", id: "clist" }),
+    h("h2", { textContent: "Anything else" }),
+    (() => {
+      const ta = h("textarea", { rows: 3, value: state.resp.general, placeholder: "General notes for the agent" });
+      ta.addEventListener("input", () => { state.resp.general = ta.value; changed(); });
+      return ta;
+    })()]));
+  updateCount();
+  renderComments();
+  onTime();
+}
+
+function itemCard(item) {
+  const a = state.resp.answers[item.id] ||= { choice: null, comment: "" };
+  const card = h("div", { className: `item${item.resolved ? " resolved" : ""}` });
+  if (item.at != null) {
+    card.dataset.at = item.at;
+    if (item.to != null) card.dataset.to = item.to;
+  }
+  const choices = h("div", { className: "choices" }, (item.choices || []).map(c =>
+    h("button", { textContent: c, className: a.choice === c ? "on" : "", onclick: e => {
+      a.choice = a.choice === c ? null : c;
+      [...choices.children].forEach(b => b.classList.toggle("on", b.textContent === a.choice));
+      changed();
+      updateCount();
+    } })));
+  const ta = h("textarea", { rows: 1, value: a.comment || "", placeholder: item.choices ? "Comment (optional)" : "Your answer" });
+  ta.addEventListener("input", () => { a.comment = ta.value; changed(); updateCount(); });
+  card.append(...nodes([
+    h("div", { className: "top" },
+      item.kind ? h("span", { className: "chip", textContent: item.kind }) : null,
+      item.resolved ? h("span", { className: "chip ok", textContent: "resolved" }) : null,
+      h("span", { className: "title", textContent: item.title || item.id }),
+      h("span", { className: "spacer" }),
+      item.at != null ? h("button", { className: "time", textContent: `▶ ${clock(item.at)}${item.to != null ? `–${clock(item.to)}` : ""}`,
+        title: `Play from ${item.pre ?? 3} s before`, onclick: () => playItem(item) }) : null),
+    item.question ? h("div", { className: "q", textContent: item.question }) : null,
+    item.error ? h("div", { className: "err", textContent: item.error }) : null,
+    item.clips ? h("div", { className: "choices" }, item.clips.map(c =>
+      h("button", { className: "time", textContent: `▶ ${c.label || c.src}`, title: `${c.src} ${c.in}–${c.out} s`, onclick: () => playClip(c) }))) : null,
+    choices.children.length ? choices : null,
+    ta,
+    item.reply ? h("div", { className: "reply", textContent: `Agent: ${item.reply}` }) : null]));
+  return card;
+}
+
+function updateCount() {
+  const items = (state.data.round.items || []).filter(i => !i.resolved);
+  $("#checkcount").textContent = `To check (${items.filter(i => answered(state.resp.answers[i.id])).length}/${items.length} answered)`;
+}
+
+function renderComments() {
+  const list = $("#clist");
+  const cs = state.resp.comments;
+  if (!cs.length) {
+    list.replaceChildren(h("div", { className: "keys", textContent: "Pause anywhere and press c to leave a comment at that moment." }));
+    return;
+  }
+  const order = cs.map((c, i) => i).sort((x, y) => (cs[x].at ?? 1e9) - (cs[y].at ?? 1e9));
+  list.replaceChildren(...order.map(i => {
+    const c = cs[i], p = c.piece != null ? timeline()[c.piece] : null;
+    return h("div", { className: "c" },
+      h("button", { className: "time", textContent: c.at != null ? clock(c.at) : `${c.src} ${c.src_at}s`,
+        onclick: () => c.at != null ? useReview(c.at - 2) : playClip({ src: c.src, in: Math.max(0, c.src_at - 2), out: c.src_at + 5 }) }),
+      h("div", { className: "body" },
+        h("div", { textContent: c.text }),
+        p ? h("div", { className: "ctx", textContent: p.text }) : null),
+      h("button", { className: "del", textContent: "×", title: "Delete comment", onclick: () => {
+        cs.splice(i, 1);
+        changed();
+        renderComments();
+      } }));
+  }));
+}
+
+// ---- keys & boot -------------------------------------------------------------
+
+document.addEventListener("keydown", e => {
+  if (!video || e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const items = (state.data.round.items || []).filter(i => i.at != null && !i.resolved).sort((x, y) => x.at - y.at);
+  const t = video.currentTime;
+  if (e.key === " ") { video.paused ? video.play() : video.pause(); }
+  else if (e.key === "ArrowLeft") { video.currentTime = Math.max(0, t - 2); }
+  else if (e.key === "ArrowRight") { video.currentTime = t + 2; }
+  else if (e.key === "c") { $("#cinput").focus(); }
+  else if (e.key === "n") { const it = items.find(i => i.at - (i.pre ?? 3) > t + 0.5); if (it) playItem(it); }
+  else if (e.key === "p") { const it = items.filter(i => i.at - (i.pre ?? 3) < t - 1).pop(); if (it) playItem(it); }
+  else return;
+  e.preventDefault();
+});
+
+$("#round").addEventListener("change", e => openRound(e.target.value));
+$("#send").addEventListener("click", () => save(true));
+window.addEventListener("beforeunload", e => { if (state.dirty) { save(); e.preventDefault(); } });
+
+(async () => {
+  try {
+    await loadRounds();
+  } catch (e) {
+    setStatus("server offline");
+  }
+  const want = location.hash.slice(1);
+  const pick = state.rounds.find(r => r.name === want) || state.rounds[state.rounds.length - 1];
+  if (pick) await openRound(pick.name); else render();
+  setInterval(poll, 4000);
+})();
+</script>
+</body>
+</html>
