@@ -65,7 +65,7 @@ Work like this:
 ```
 
 ## The review page
-`venv/bin/python review.py serve` opens on http://localhost:8765/. It shows the current project's latest round (older rounds are in the dropdown):
+`venv/bin/python review.py serve` opens on http://localhost:8790/. It shows the current project's latest round (older rounds are in the dropdown):
 - **To check**: the agent's items. **▶ time** plays from a few seconds before the spot and stops at the item's end, so you never have to scrub. Take comparisons play the source clips. Answer with the choice buttons and/or a comment.
 - **Comments at a time**: press `c` (or click the comment box) anywhere in the video to pause and leave a note at that moment. The agent gets the time, the EDL piece and the source-clip time.
 - **Send to agent**: answers autosave to `review/responses/review-N.json` as you go. Sending tells the agent (`review.py wait`) that they're ready. You can send more than once.

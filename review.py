@@ -2,7 +2,7 @@
 
 Usage:
   venv/bin/python review.py publish [RENDER.mp4] [--edl EDL]   (default work/preview.mp4, work/edl.json)
-  venv/bin/python review.py serve [--port 8765]
+  venv/bin/python review.py serve [--port 8790]
   venv/bin/python review.py wait [ROUND]      (keeps running; prints a line per send)
   venv/bin/python review.py show [ROUND]      (default: the latest round)
 
@@ -280,7 +280,7 @@ def main():
     p.add_argument("render", nargs="?", type=in_data, default="work/preview.mp4")
     p.add_argument("--edl", type=in_data, default="work/edl.json")
     p = sub.add_parser("serve")
-    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--port", type=int, default=8790)
     for cmd in ("show", "wait"):
         sub.add_parser(cmd).add_argument("round", nargs="?")
     args = ap.parse_args()
