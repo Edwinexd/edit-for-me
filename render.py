@@ -16,9 +16,10 @@ are notes for editing/snap.py and ignored here. Optional per piece:
                              seconds before the piece starts, for a longer pause
 
 Each piece is cut to its own cached file (work/pieces/, keyed by src/in/out/
-fade/quality) with lossless PCM audio and short fades so splices don't click,
-then all pieces are joined with the concat demuxer and the audio is encoded
-once. Changing one piece only re-renders that piece.
+fade/quality), scaled and letterboxed to 1920x1080 (960x540 for --preview),
+with lossless PCM audio and short fades so splices don't click, then all
+pieces are joined with the concat demuxer and the audio is encoded once.
+Changing one piece only re-renders that piece.
 """
 import argparse
 import hashlib
@@ -34,11 +35,14 @@ PIECES = WORK / "pieces"
 
 # hardware H.264 on macOS, x264 elsewhere
 if sys.platform == "darwin":
-    VENC = {True: ["-c:v", "h264_videotoolbox", "-b:v", "2M", "-s", "960x540"],
+    VENC = {True: ["-c:v", "h264_videotoolbox", "-b:v", "2M"],
             False: ["-c:v", "h264_videotoolbox", "-q:v", "65"]}
 else:
-    VENC = {True: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-s", "960x540"],
+    VENC = {True: ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28"],
             False: ["-c:v", "libx264", "-preset", "medium", "-crf", "18"]}
+
+# every piece is fitted into the same frame, so clips of different sizes can be concatenated
+SIZE = {True: (960, 540), False: (1920, 1080)}
 
 
 def piece_path(p, fade, preview):
@@ -62,11 +66,13 @@ def cut_piece(p, fade, preview):
         amap = "1:a"
     gain = f"volume={p['gain_db']}dB," if p.get("gain_db") else ""
     hold = p.get("hold_before", 0)
-    vf = ["-vf", f"tpad=start_duration={hold}:start_mode=clone"] if hold else []
+    w, h = SIZE[preview]
+    vf = [f"tpad=start_duration={hold}:start_mode=clone"] if hold else []
+    vf.append(f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1")
     delay = f",adelay={int(hold * 1000)}:all=1" if hold else ""
     tmp = dst.with_suffix(".part.mkv")
     subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", *inputs, "-map", "0:v", "-map", amap, *vf,
+        ["ffmpeg", "-y", "-loglevel", "error", *inputs, "-map", "0:v", "-map", amap, "-vf", ",".join(vf),
          "-af", f"{gain}afade=t=in:d={f},afade=t=out:st={d - f}:d={f}{delay}",
          *VENC[preview], "-r", "30", "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2", str(tmp)],
         check=True,

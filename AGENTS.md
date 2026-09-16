@@ -23,7 +23,7 @@ This repo is the tool. It is cloned once and pointed at any number of recordings
 - `snippet.py CLIP FROM TO [...]` re-transcribes short stretches in isolation. This is the ground truth for what was actually said (see below).
 - `rms.py CLIP T [...]` prints a loudness profile around a point, for placing mid-speech cuts.
 - `snap.py [work/edl.json]` moves each in/out point into the nearest real silence (ffmpeg silencedetect) and edits the file in place. Pieces with `"lock": ["in"|"out"]` are left untouched.
-- `render.py work/edl.json OUT.mp4 [--preview]` cuts each piece to `work/pieces/` (cached) with PCM audio and 30 ms fades, concatenates them, and writes `OUT.timeline.json` (where every piece starts in the output). Optional per-piece settings:
+- `render.py work/edl.json OUT.mp4 [--preview]` cuts each piece to `work/pieces/` (cached), scaled and letterboxed to 1920x1080 (960x540 with `--preview`) so clips of different sizes mix, with PCM audio and 30 ms fades, concatenates them, and writes `OUT.timeline.json` (where every piece starts in the output). Optional per-piece settings:
   - `"gain_db"` changes the level (e.g. a quiet closing line).
   - `"audio": {"src", "in"}` plays audio from another clip over this piece's video (e.g. a line spoken over a different slide).
   - `"hold_before": seconds` freezes the first frame over silence to lengthen a pause. Only use it on full-screen slides, where the presenter is off camera.
